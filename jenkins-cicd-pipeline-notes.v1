@@ -1,0 +1,31 @@
+node{
+    stage('git checkout'){
+        git credentialsId: 'GITHUB', url: 'https://github.com/ramunakerikanti/tiss_web_1'
+    }
+    
+    stage('docker build'){
+        sh 'docker build -t ramunakerikanti0543/tiss_web_1:v0.3 .'
+    }
+    
+    stage('docker push to docker_hub registry'){
+        withCredentials([string(credentialsId: 'dockerhubpassword', variable: 'dockerhubsecretKey')]) {
+          sh "docker login -u ramunakerikanti0543 -p ${dockerhubsecretKey}"
+        }
+        sh 'docker push ramunakerikanti0543/tiss_web_1:v0.3'
+    }
+   
+    stage('deploy on dev server'){
+        def dockerRun='docker run --name tiss_weeb_app -p 9090:80 ramunakerikanti0543/tiss_web_1:v0.3'
+        sshagent(['ramu-key']) {
+          withCredentials([string(credentialsId: 'dockerhubpassword', variable: 'dockerhubsecretKey')]) {
+          sh "docker login -u ramunakerikanti0543 -p ${dockerhubsecretKey}"
+         
+          def dockerPull="docker login -u ramunakerikanti0543 -p ${dockerhubsecretKey}"
+          sh "ssh -o StrictHostKeyChecking=no ramu@192.168.122.137 ${dockerPull}"        
+          sh "ssh -o StrictHostKeyChecking=no ramu@192.168.122.137 ${dockerRun}"
+      
+          }      
+    }
+  }
+    
+}
